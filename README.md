@@ -8,6 +8,8 @@ This tool provides batch processing capabilities with advanced options for forma
 
 ## 📦 Features
 
+### Web Icon Kit creation
+
 ### Image Processing
 - **Batch Optimization**: Efficiently processes multiple files simultaneously using a dedicated background runtime thread.
 - **WebP Conversion**: Transform legacy image formats (PNG, JPEG, etc.) into the highly efficient WebP format for faster web loading.
