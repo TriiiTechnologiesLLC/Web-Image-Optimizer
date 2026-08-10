@@ -1,6 +1,6 @@
 # Web Image Optimizer GUI
 
-A high-performance, desktop-based Graphical User Interface for transforming and altering images to be better served over a web environment. 
+A high-performance, desktop-based Graphical User Interface for transforming and altering images to be better served over a web environment, in addition to small tools tailored at image manipulation to better assist developers in rapid deployment.
 
 This tool provides batch processing capabilities with advanced options for format conversion and metadata redaction, wrapped in a modern, dark-mode interface.
 
