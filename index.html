@@ -10,13 +10,6 @@
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <style>
-    /*
-    Copyright 2026 Triii Technologies LLC
-    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-    The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-    THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    */
-
     /* Reset and Core Layout */
     * {
       box-sizing: border-box;
@@ -25,7 +18,7 @@
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: #181825; /* Dark background */
+      background-color: #181825;
       color: #cdd6f4;
       height: 100vh;
       display: flex;
@@ -190,8 +183,8 @@
 
     /* --- Custom Loading Spinner Styles --- */
     .sweet-spinner {
-      border: 4px solid rgba(137, 180, 250, 0.1); /* Muted blue track */
-      border-left-color: #89b4fa;                  /* Active spin color */
+      border: 4px solid rgba(137, 180, 250, 0.1);
+      border-left-color: #89b4fa;
       width: 30px;
       height: 30px;
       border-radius: 50%;
@@ -201,9 +194,19 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    /* Section Label */
+    .section-label {
+      font-size: 13px;
+      color: #a6adc8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
   </style>
 </head>
 <body>
+
 <!-- Custom Frameless App Header -->
 <header class="app-header">
   <div class="app-title">Web Image Optimization Utility</div>
@@ -211,8 +214,10 @@
 
 <!-- Application Window Workspace -->
 <main class="app-body">
-  <!-- Configuration Panel -->
+
+  <!-- Configuration Panel: Batch Processing -->
   <section class="panel">
+    <div class="section-label">Batch Image Optimization</div>
     <div class="flex-row">
       <input type="text" id="inputPath" placeholder="Select source pictures folder path..." readonly />
       <button id="btnBrowseInput" onclick="pickFolder('inputPath')" class="btn-secondary">Browse Source</button>
@@ -234,14 +239,28 @@
     </div>
   </section>
 
+  <!-- Configuration Panel: Icon Kit Generation -->
+  <section class="panel">
+    <div class="section-label">Favicon / Icon Kit Generator</div>
+    <div class="flex-row">
+      <input type="text" id="sourceImagePath" placeholder="Select source image for icon generation..." readonly />
+      <button onclick="pickFile('sourceImagePath')" class="btn-secondary">Browse Source Image</button>
+    </div>
+    <div class="flex-row">
+      <input type="text" id="iconKitOutputPath" placeholder="Select output directory for icons..." readonly />
+      <button onclick="pickFolder('iconKitOutputPath')" class="btn-secondary">Browse Output</button>
+    </div>
+  </section>
+
   <!-- Action Buttons -->
-  <div class="flex-row" style="justify-content: flex-end;">
+  <div class="flex-row" style="justify-content: space-between;">
+    <button id="btnGenerateIcons" onclick="generateIconKit()" style="padding: 10px 24px; font-size: 14px;" class="btn-secondary">🎨 Generate Icon Kit</button>
     <button id="btnStart" onclick="runPipeline()" style="padding: 10px 24px; font-size: 14px;">Optimize Images</button>
   </div>
 
   <!-- Live Active Console Logging Monitor -->
   <h3>System Logs</h3>
-  <div class="log-container" id="logOutput">Welcome. <br /> <br />Web Image Optimization Utility is a GUI for transforming and altering images to be better served over a web environment <br /> <b>Select paths to begin.</b>
+  <div class="log-container" id="logOutput">Welcome. <br /><br />Web Image Optimization Utility is a GUI for transforming and altering images to be better served over a web environment<br /><b>Select paths to begin.</b>
   </div>
 
   <!-- Footer -->
@@ -250,23 +269,22 @@
   </div>
 </main>
 
-<!-- Wiring Frontend UI Interactivity to your patched gui_logic.js -->
 <script>
   document.getElementById('triii-link').addEventListener('click', (event) => {
-    event.preventDefault(); // Stop the page from routing or reloading
+    event.preventDefault();
     window.electronAPI.openBrowser('https://www.triii.org/');
   });
 
   const logOutput = document.getElementById('logOutput');
 
-  // Logging Helper
   function appendLog(text) {
     const timestamp = new Date().toLocaleTimeString();
     logOutput.innerText += `\n[${timestamp}] ${text}`;
     logOutput.scrollTop = logOutput.scrollHeight;
   }
 
-  // Folder Selection Logic
+  // ─── Folder Selection ──────────────────────────────────────────────
+
   async function pickFolder(elementId) {
     const title = elementId === 'inputPath' ? 'Select Image Source Folder' : 'Select Output Folder';
     const chosenPath = await window.electronAPI.selectDirectory(title);
@@ -277,7 +295,90 @@
     }
   }
 
-  // Main Pipeline Logic
+  // ─── File Selection (Source Image) ────────────────────────────────
+
+  async function pickFile(elementId) {
+    const title = elementId === 'sourceImagePath' ? 'Select Source Image (PNG/JPG)' : 'Select Output Folder';
+    const chosenPath = await window.electronAPI.selectFile(title);
+
+    if (chosenPath) {
+      document.getElementById(elementId).value = chosenPath;
+      appendLog(`Source image assigned: ${chosenPath}`);
+    }
+  }
+
+  // ─── Icon Kit Generation ──────────────────────────────────────────
+
+  async function generateIconKit() {
+    const sourceField = document.getElementById('sourceImagePath');
+    const outputField = document.getElementById('iconKitOutputPath');
+    const sourceImage = sourceField.value;
+    const outputPath = outputField.value;
+    const btnGenerateIcons = document.getElementById('btnGenerateIcons');
+
+    if (!sourceImage || !outputPath) {
+      await Swal.fire({
+        title: 'Missing Paths',
+        text: 'Please select a source image and output directory for icon generation.',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    btnGenerateIcons.disabled = true;
+    appendLog("Initializing Icon Kit Generator...");
+
+    Swal.fire({
+      title: 'Generating Icons',
+      html: `<div class="sweet-spinner"></div><br>Creating favicon kit.<br>Please do not close this window.`,
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      background: '#1e1e2e',
+      color: '#cdd6f4'
+    });
+
+    try {
+      const result = await window.electronAPI.generateIconKit(sourceImage, outputPath);
+
+      if (result.success) {
+        appendLog(result.data.log || `✓ Icon Kit generated successfully!`);
+
+        await Swal.fire({
+          title: 'Icon Kit Generated',
+          html: `Generated <b>${result.data.fileCount}</b> icons in:<br><code style="color:#89b4fa">${result.data.directory}</code>`,
+          icon: 'success',
+          confirmButtonText: 'Close'
+        });
+
+        document.getElementById('sourceImagePath').value = '';
+        document.getElementById('iconKitOutputPath').value = '';
+      } else {
+        appendLog(`✗ Icon Kit generation failed: ${result.error}`);
+
+        await Swal.fire({
+          title: 'Icon Kit Error',
+          text: result.error || 'An unexpected error occurred during icon kit generation.',
+          icon: 'error',
+          confirmButtonText: 'Dismiss'
+        });
+      }
+    } catch (err) {
+      appendLog(`CRITICAL FAILURE: ${err.message}`);
+
+      await Swal.fire({
+        title: 'Icon Kit Error',
+        text: err.message || 'An unexpected error occurred during icon kit generation.',
+        icon: 'error',
+        confirmButtonText: 'Dismiss'
+      });
+    } finally {
+      btnGenerateIcons.disabled = false;
+    }
+  }
+
+  // ─── Batch Image Processing Pipeline ──────────────────────────────
+
   async function runPipeline() {
     const inputField = document.getElementById('inputPath');
     const outputField = document.getElementById('outputPath');
@@ -285,7 +386,6 @@
     const output = outputField.value;
     const runBtn = document.getElementById('btnStart');
 
-    // 1. Validation Check (SweetAlert2 Warning)
     if (!input || !output) {
       await Swal.fire({
         title: 'Missing Directories',
@@ -296,18 +396,16 @@
       return;
     }
 
-    // 2. UI Update (Disable Button)
     runBtn.disabled = true;
     appendLog("Initializing processBatch runtime thread...");
 
-    // 3. Show Loading Modal (SweetAlert2 with Custom Spinner CSS)
     Swal.fire({
       title: 'Processing Images',
       html: `<div class="sweet-spinner"></div><br>Optimizing your files.<br>Please do not close this window.`,
       showConfirmButton: false,
       allowOutsideClick: false,
-      background: '#1e1e2e', // Background match
-      color: '#cdd6f4'       // Text match
+      background: '#1e1e2e',
+      color: '#cdd6f4'
     });
 
     try {
@@ -315,26 +413,39 @@
         stripMeta: document.getElementById('chkStrip').checked,
         toWebp: document.getElementById('chkWebp').checked,
         redactGps: document.getElementById('chkGps').checked,
-        concurrency: 1
+        generateIcons: !!document.getElementById('sourceImagePath').value,
+        sourceImageForIcons: document.getElementById('sourceImagePath').value || null
       };
 
-      // Native call — completely synchronous execution flow
       const result = await window.electronAPI.processImages(input, output, options);
-
       appendLog(result.data.log);
 
-      // 4. Update Modal to Success (SweetAlert2 Success)
-      await Swal.fire({
-        title: 'Processing Complete',
-        html: `Succeeded: <b>${result.data.success}</b><br>Failed: <b>${result.data.failures}</b>`,
-        icon: 'success',
-        confirmButtonText: 'Close'
-      });
+      if (result.data.iconKit) {
+        const iconKit = result.data.iconKit;
+        appendLog(`✓ Icon Kit: ${iconKit.fileCount} icons in icon-kit/`);
+
+
+        await Swal.fire({
+          title: 'Processing Complete',
+          html: `Succeeded: <b>${result.data.success}</b><br>Failed: <b>${result.data.failures}</b><br><br>Icon Kit: <b>${iconKit.fileCount} icons</b> generated in icon-kit/`,
+          icon: 'success',
+          confirmButtonText: 'Close'
+        });
+
+        document.getElementById('sourceImagePath').value = '';
+        document.getElementById('iconKitOutputPath').value = '';
+      } else {
+        await Swal.fire({
+          title: 'Processing Complete',
+          html: `Succeeded: <b>${result.data.success}</b><br>Failed: <b>${result.data.failures}</b>`,
+          icon: 'success',
+          confirmButtonText: 'Close'
+        });
+      }
 
     } catch (err) {
       appendLog(`CRITICAL FAILURE: ${err.message}`);
 
-      // 5. Update Modal to Error (SweetAlert2 Error)
       await Swal.fire({
         title: 'Pipeline Error',
         text: err.message || 'An unexpected error occurred during image processing.',

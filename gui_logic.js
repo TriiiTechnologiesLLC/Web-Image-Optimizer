@@ -1,13 +1,3 @@
-/*
-Copyright 2026 Triii Technologies LLC
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -90,17 +80,14 @@ function redactGpsFromExif(exifBuffer, fuzzPrecision = 0) {
             if (exifData.gps.longitude !== undefined) exifData.gps.longitude = Math.round(exifData.gps.longitude * round) / round;
         }
 
-        // Wipe absolute GPS properties out completely
         Object.keys(exifData.tags).forEach(k => {
             if (k.startsWith('GPS') || k.toLowerCase().includes('gps')) {
                 delete exifData.tags[k];
             }
         });
 
-        // Safe fallback build structure injection
         return typeof parser.build === 'function' ? parser.build() : null;
     } catch (e) {
-        // Fallback: If ExifParser encounters data types it dislikes, return null to drop corrupted headers safely
         return null;
     }
 }
@@ -195,17 +182,15 @@ async function compressFile(inputPath, outputBase, opts) {
     await fsPromises.mkdir(path.dirname(outPath), { recursive: true });
     const originalSize = (await fsPromises.stat(absInput)).size;
 
-    // PNG processing optimization branch
     if (ext === '.png' && !opts.toWebp && isBinaryAvailable('optipng')) {
         const stripFlag = opts.stripMeta ? '-strip' : '-preserve';
         try {
             await withRetries(() => execFileP('optipng', ['-o5', '-quiet', '-out', outPath, stripFlag, 'all', absInput]));
             const compressedSize = (await fsPromises.stat(outPath)).size;
             return { success: true, filename: path.basename(outPath), original: originalSize, compressed: compressedSize, reduction: ((originalSize - compressedSize) / originalSize * 100).toFixed(1), tool: 'optipng', uploadOk: false };
-        } catch (err) { /* If optipng execution drops out, transparently fallback below to sharp */ }
+        } catch (err) { /* Fallback to sharp */ }
     }
 
-    // Standard Fallback Channel (JPEG / WebP / Native Sharp PNG)
     try {
         const meta = await sharp(absInput).metadata();
         let pipeline = sharp(absInput);
@@ -219,12 +204,11 @@ async function compressFile(inputPath, outputBase, opts) {
             customExif = redactGpsFromExif(meta.exif, opts.fuzzPrecision || 0);
         }
 
-        // Safe Metadata Handling for modern Sharp versions
         if (!opts.stripMeta) {
             if (customExif) {
                 pipeline = pipeline.withMetadata({ exif: customExif });
             } else {
-                pipeline = pipeline.withMetadata(); // Retain orientation and original fields safely
+                pipeline = pipeline.withMetadata();
             }
         }
 
@@ -256,6 +240,63 @@ async function compressFile(inputPath, outputBase, opts) {
     }
 }
 
+// ─── Icon Kit Generation ──────────────────────────────────────────────
+
+const ICON_CONFIG = [
+    { name: 'favicon-16x16', size: 16, type: 'png' },
+    { name: 'favicon-32x32', size: 32, type: 'png' },
+    { name: 'apple-touch-icon', size: 180, type: 'png' },
+    { name: 'android-chrome-192x192', size: 192, type: 'png' },
+    { name: 'android-chrome-512x512', size: 512, type: 'png' },
+];
+
+async function iconKitGeneration(sourceImagePath, outputBase) {
+    const absSource = path.resolve(ensureLongPaths(sourceImagePath));
+
+    if (!(await fsPromises.access(absSource).then(() => true).catch(() => false))) {
+        throw new Error(`Source image not found: ${absSource}`);
+    }
+
+    const iconKitDir = path.resolve(path.join(outputBase, 'icon-kit'));
+    await fsPromises.mkdir(iconKitDir, { recursive: true });
+
+    const metadata = await sharp(absSource).metadata();
+    const width = metadata.width;
+    const height = metadata.height;
+
+    let cropParams = {};
+    if (width !== height) {
+        const size = Math.min(width, height);
+        const x = Math.floor((width - size) / 2);
+        const y = Math.floor((height - size) / 2);
+        cropParams = { left: x, top: y, width: size, height: size };
+    }
+
+    const results = [];
+
+    for (const icon of ICON_CONFIG) {
+        const outputFile = path.join(iconKitDir, `${icon.name}.${icon.type}`);
+
+        await sharp(absSource)
+            .extract(cropParams)
+            .resize(icon.size, icon.size, { fit: 'cover', position: 'center' })
+            .png()
+            .toFile(outputFile);
+
+        const stat = await fsPromises.stat(outputFile);
+        results.push({ name: `${icon.name}.${icon.type}`, size: icon.size, bytes: stat.size });
+    }
+
+    return {
+        directory: iconKitDir,
+        files: results.map(r => r.name),
+        fileCount: results.length,
+        totalBytes: results.reduce((acc, r) => acc + r.bytes, 0),
+    };
+}
+
+// ─── Batch Pipeline ───────────────────────────────────────────────────
+
 async function processBatch(inputPath, outputBase, opts) {
     const start = Date.now();
     const resolvedInput = path.resolve(inputPath);
@@ -269,12 +310,12 @@ async function processBatch(inputPath, outputBase, opts) {
     let successCount = 0, failCount = 0;
     let logs = [];
 
-    for(let file of files) {
+    for (let file of files) {
         let res = await compressFile(file, path.resolve(outputBase), opts);
 
-        if(res.success) {
+        if (res.success) {
             successCount++;
-            logs.push(`✓ ${res.filename} Original Size: ${res.original} New Size: ${res.compressed} (-${res.reduction}% via ${res.tool})`);
+            logs.push(`✓ ${res.filename} Original Size: ${formatBytes(res.original)} New Size: ${formatBytes(res.compressed)} (-${res.reduction}% via ${res.tool})`);
         } else {
             failCount++;
             logs.push(`✗ ${path.basename(file)}: ${res.error}`);
@@ -283,8 +324,9 @@ async function processBatch(inputPath, outputBase, opts) {
 
     return {
         log: `✅ Pipeline Complete in ${((Date.now() - start) / 1000).toFixed(2)}s\n\n${logs.join('\n')}`,
-        success: successCount, failures: failCount
+        success: successCount, failures: failCount || 0,
+        failed: failCount || 0
     };
 }
 
-module.exports = { processBatch, formatBytes, compressFile };
+module.exports = { processBatch, formatBytes, compressFile, iconKitGeneration };
