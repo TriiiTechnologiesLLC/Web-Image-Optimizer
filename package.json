@@ -1,0 +1,45 @@
+{
+  "name": "web-image-optimizer-gui",
+  "version": "1.0.0",
+  "main": "main.js",
+  "author": "Triii Technologies LLC",
+  "license": "MIT",
+  "description": "An Electron based gui for mass conversion of images to a web optimized format by www.triii.org",
+  "scripts": {
+    "start": "electron .",
+    "package": "electron-builder",
+    "windows": "electron-builder --win --x64",
+    "linux": "electron-builder --linux --x64"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1090.0",
+    "dotenv": "^17.4.2",
+    "exif-parser": "^0.1.12",
+    "sharp": "^0.35.3",
+    "ssh2-sftp-client": "^12.1.1"
+  },
+  "devDependencies": {
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "directories": {
+      "buildResources": "assets"
+    },
+    "win": {
+      "icon": "assets/icons/fav.png"
+    },
+    "mac": {
+      "icon": "assets/icons/fav.icns"
+    },
+    "linux": {
+      "icon": "assets/icons/fav.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "license": "LICENSE.txt"
+    }
+  }
+}

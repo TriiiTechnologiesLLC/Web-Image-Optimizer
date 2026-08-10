@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Web Image Optimizer GUI - Triii Technologies LLC</title>
+
+  <!-- SweetAlert2 CSS & JS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
+    /*
+    Copyright 2026 Triii Technologies LLC
+    Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+    The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+    THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    */
+
+    /* Reset and Core Layout */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #181825; /* Dark background */
+      color: #cdd6f4;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* --- Frameless Window Draggable Header --- */
+    .app-header {
+      height: 36px;
+      background-color: #1e1e2e;
+      display: flex;
+      align-items: center;
+      padding-left: 16px;
+      -webkit-app-region: drag;
+      user-select: none;
+      border-bottom: 1px solid #313244;
+    }
+    .app-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      color: #a6adc8;
+      text-transform: uppercase;
+    }
+
+    /* Main Content Area */
+    .app-body {
+      flex: 1;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow: hidden;
+    }
+
+    /* Configuration Panel */
+    .panel {
+      background-color: #1e1e2e;
+      border: 1px solid #313244;
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .flex-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .flex-row:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Form UI Elements */
+    label {
+      font-size: 14px;
+      color: #bac2de;
+    }
+    input[type="text"] {
+      flex: 1;
+      background-color: #313244;
+      border: 1px solid #45475a;
+      color: #cdd6f4;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #89b4fa;
+    }
+
+    /* Interactive elements */
+    button {
+      -webkit-app-region: no-drag;
+      background-color: #89b4fa;
+      color: #11111b;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    button:hover {
+      background-color: #b4befe;
+    }
+    .btn-secondary {
+      background-color: #45475a;
+      color: #cdd6f4;
+    }
+    .btn-secondary:hover {
+      background-color: #585b70;
+    }
+
+    /* Checkboxes */
+    .checkbox-group {
+      display: flex;
+      gap: 16px;
+      margin-top: 8px;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    /* Terminal Console Log Output */
+    .log-container {
+      flex: 1;
+      background-color: #11111b;
+      border: 1px solid #313244;
+      border-radius: 8px;
+      padding: 14px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+      color: #a6e3a1;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+
+    /* --- SweetAlert2 Dark Mode Overrides --- */
+    .swal2-popup {
+      background-color: #1e1e2e !important;
+      color: #cdd6f4 !important;
+      border: 1px solid #313244 !important;
+      font-family: inherit !important;
+    }
+    .swal2-title {
+      color: #bac2de !important;
+    }
+    .swal2-html-container, .swal2-confirm, .swal2-cancel {
+      color: #cdd6f4 !important;
+    }
+    .swal2-confirm {
+      background-color: #89b4fa !important;
+      border: none !important;
+      font-weight: 600 !important;
+      border-radius: 6px !important;
+      color: #11111b !important;
+    }
+    .swal2-confirm:hover {
+      background-color: #b4befe !important;
+    }
+    .swal2-cancel {
+      background-color: #45475a !important;
+      border: none !important;
+      font-weight: 600 !important;
+      border-radius: 6px !important;
+      color: #cdd6f4 !important;
+    }
+    .swal2-cancel:hover {
+      background-color: #585b70 !important;
+    }
+    .swal2-icon.swal2-warning {
+      border-color: #f9e2af !important;
+      color: #f9e2af !important;
+    }
+
+    /* --- Custom Loading Spinner Styles --- */
+    .sweet-spinner {
+      border: 4px solid rgba(137, 180, 250, 0.1); /* Muted blue track */
+      border-left-color: #89b4fa;                  /* Active spin color */
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 12px auto 0 auto;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+<!-- Custom Frameless App Header -->
+<header class="app-header">
+  <div class="app-title">Web Image Optimization Utility</div>
+</header>
+
+<!-- Application Window Workspace -->
+<main class="app-body">
+  <!-- Configuration Panel -->
+  <section class="panel">
+    <div class="flex-row">
+      <input type="text" id="inputPath" placeholder="Select source pictures folder path..." readonly />
+      <button id="btnBrowseInput" onclick="pickFolder('inputPath')" class="btn-secondary">Browse Source</button>
+    </div>
+    <div class="flex-row">
+      <input type="text" id="outputPath" placeholder="Select conversion output directory path..." readonly />
+      <button id="btnBrowseOutput" onclick="pickFolder('outputPath')" class="btn-secondary">Browse Output</button>
+    </div>
+    <div class="checkbox-group">
+      <label class="checkbox-label">
+        <input type="checkbox" id="chkWebp" checked> Optimize Images with WebP Format
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="chkStrip" checked> Strip Metadata (EXIF)
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="chkGps" checked> Redact GPS Coordinates (EXIF)
+      </label>
+    </div>
+  </section>
+
+  <!-- Action Buttons -->
+  <div class="flex-row" style="justify-content: flex-end;">
+    <button id="btnStart" onclick="runPipeline()" style="padding: 10px 24px; font-size: 14px;">Optimize Images</button>
+  </div>
+
+  <!-- Live Active Console Logging Monitor -->
+  <h3>System Logs</h3>
+  <div class="log-container" id="logOutput">Welcome. <br /> <br />Web Image Optimization Utility is a GUI for transforming and altering images to be better served over a web environment <br /> <b>Select paths to begin.</b>
+  </div>
+
+  <!-- Footer -->
+  <div style="text-align: center; font-size: 24px; color: #585b70;">
+    Built With ❤️ By <a id="triii-link" href="#" style="color: #bac2de; text-decoration: none; cursor: pointer;">Triii Technologies LLC</a>
+  </div>
+</main>
+
+<!-- Wiring Frontend UI Interactivity to your patched gui_logic.js -->
+<script>
+  document.getElementById('triii-link').addEventListener('click', (event) => {
+    event.preventDefault(); // Stop the page from routing or reloading
+    window.electronAPI.openBrowser('https://www.triii.org/');
+  });
+
+  const logOutput = document.getElementById('logOutput');
+
+  // Logging Helper
+  function appendLog(text) {
+    const timestamp = new Date().toLocaleTimeString();
+    logOutput.innerText += `\n[${timestamp}] ${text}`;
+    logOutput.scrollTop = logOutput.scrollHeight;
+  }
+
+  // Folder Selection Logic
+  async function pickFolder(elementId) {
+    const title = elementId === 'inputPath' ? 'Select Image Source Folder' : 'Select Output Folder';
+    const chosenPath = await window.electronAPI.selectDirectory(title);
+
+    if (chosenPath) {
+      document.getElementById(elementId).value = chosenPath;
+      appendLog(`Path assigned: ${chosenPath}`);
+    }
+  }
+
+  // Main Pipeline Logic
+  async function runPipeline() {
+    const inputField = document.getElementById('inputPath');
+    const outputField = document.getElementById('outputPath');
+    const input = inputField.value;
+    const output = outputField.value;
+    const runBtn = document.getElementById('btnStart');
+
+    // 1. Validation Check (SweetAlert2 Warning)
+    if (!input || !output) {
+      await Swal.fire({
+        title: 'Missing Directories',
+        text: 'Please select your input and output directories first.',
+        icon: 'warning',
+        confirmButtonText: 'OK'
+      });
+      return;
+    }
+
+    // 2. UI Update (Disable Button)
+    runBtn.disabled = true;
+    appendLog("Initializing processBatch runtime thread...");
+
+    // 3. Show Loading Modal (SweetAlert2 with Custom Spinner CSS)
+    Swal.fire({
+      title: 'Processing Images',
+      html: `<div class="sweet-spinner"></div><br>Optimizing your files.<br>Please do not close this window.`,
+      showConfirmButton: false,
+      allowOutsideClick: false,
+      background: '#1e1e2e', // Background match
+      color: '#cdd6f4'       // Text match
+    });
+
+    try {
+      const options = {
+        stripMeta: document.getElementById('chkStrip').checked,
+        toWebp: document.getElementById('chkWebp').checked,
+        redactGps: document.getElementById('chkGps').checked,
+        concurrency: 1
+      };
+
+      // Native call — completely synchronous execution flow
+      const result = await window.electronAPI.processImages(input, output, options);
+
+      appendLog(result.data.log);
+
+      // 4. Update Modal to Success (SweetAlert2 Success)
+      await Swal.fire({
+        title: 'Processing Complete',
+        html: `Succeeded: <b>${result.data.success}</b><br>Failed: <b>${result.data.failures}</b>`,
+        icon: 'success',
+        confirmButtonText: 'Close'
+      });
+
+    } catch (err) {
+      appendLog(`CRITICAL FAILURE: ${err.message}`);
+
+      // 5. Update Modal to Error (SweetAlert2 Error)
+      await Swal.fire({
+        title: 'Pipeline Error',
+        text: err.message || 'An unexpected error occurred during image processing.',
+        icon: 'error',
+        confirmButtonText: 'Dismiss'
+      });
+    } finally {
+      runBtn.disabled = false;
+      inputField.value = "";
+      outputField.value = "";
+    }
+  }
+</script>
+</body>
+</html>
