@@ -108,11 +108,11 @@ async function collectFiles(dir) {
     return files;
 }
 
-async function validateInput(inputPath, maxFileSize = 100 * 1024 * 1024, maxDimensions = 50 * 1000 * 1000) {
+async function validateInput(inputPath,  maxFileSize = 100 * 1024 * 1024, maxDimensions = 100 * 1000 * 1000) {
     try {
         const stats = await fsPromises.stat(inputPath);
         if (stats.size > maxFileSize) throw new Error(`File too large: ${formatBytes(stats.size)} exceeds limit of ${formatBytes(maxFileSize)}`);
-        const meta = await sharp(inputPath).metadata();
+        const meta = await sharp(inputPath, { failOn: 'none', limitInputPixels: false }).metadata();
         const pixels = (meta.width || 0) * (meta.height || 0);
         if (pixels > maxDimensions) throw new Error(`Image too large: ${pixels} pixels`);
         return true;
@@ -192,8 +192,9 @@ async function compressFile(inputPath, outputBase, opts) {
     }
 
     try {
-        const meta = await sharp(absInput).metadata();
-        let pipeline = sharp(absInput);
+        let pipeline = sharp(absInput, { failOn: 'none', limitInputPixels: false });
+
+        const meta = await pipeline.metadata();
 
         if (opts.fixOrientation && (!opts.stripMeta || meta.exif)) {
             pipeline = pipeline.rotate();
@@ -260,7 +261,7 @@ async function iconKitGeneration(sourceImagePath, outputBase) {
     const iconKitDir = path.resolve(path.join(outputBase, 'icon-kit'));
     await fsPromises.mkdir(iconKitDir, { recursive: true });
 
-    const metadata = await sharp(absSource).metadata();
+    const metadata = await sharp(absSource, { failOn: 'none', limitInputPixels: false }).metadata();
     const width = metadata.width;
     const height = metadata.height;
 
